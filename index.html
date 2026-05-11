@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TaskFlow – Gestión de Proyectos</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e334d;
+    --accent: #4f6ef7;
+    --accent2: #7c3aed;
+    --green: #22c55e;
+    --orange: #f59e0b;
+    --red: #ef4444;
+    --text: #e8eaf6;
+    --muted: #6b7280;
+    --card: #1e2235;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+
+  /* LOGIN */
+  #login-screen {
+    min-height:100vh; display:flex; align-items:center; justify-content:center;
+    background: radial-gradient(ellipse at 30% 40%, #1a1f5e44 0%, transparent 60%),
+                radial-gradient(ellipse at 70% 70%, #3b0a6622 0%, transparent 55%),
+                var(--bg);
+  }
+  .login-box {
+    background:var(--surface); border:1px solid var(--border); border-radius:20px;
+    padding:48px 40px; width:400px; max-width:94vw;
+    box-shadow: 0 32px 80px #00000060;
+  }
+  .logo { font-size:26px; font-weight:700; color:var(--accent); letter-spacing:-1px; margin-bottom:6px; }
+  .logo span { color:var(--text); }
+  .login-sub { color:var(--muted); font-size:13px; margin-bottom:32px; }
+  label { font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.8px; display:block; margin-bottom:6px; }
+  input[type=text], input[type=email], input[type=password] {
+    width:100%; background:var(--bg); border:1px solid var(--border); border-radius:10px;
+    padding:12px 14px; color:var(--text); font-family:inherit; font-size:14px;
+    outline:none; margin-bottom:18px; transition:.2s;
+  }
+  input:focus { border-color:var(--accent); box-shadow:0 0 0 3px #4f6ef720; }
+  .btn {
+    width:100%; background:var(--accent); color:#fff; border:none; border-radius:10px;
+    padding:13px; font-family:inherit; font-size:15px; font-weight:600; cursor:pointer;
+    transition:.2s; letter-spacing:.3px;
+  }
+  .btn:hover { background:#3a56e8; transform:translateY(-1px); box-shadow:0 6px 20px #4f6ef740; }
+  .toggle-link { text-align:center; margin-top:18px; font-size:13px; color:var(--muted); }
+  .toggle-link a { color:var(--accent); cursor:pointer; text-decoration:none; }
+  .error-msg { background:#ef444420; border:1px solid #ef444440; border-radius:8px;
+    padding:10px 14px; font-size:13px; color:#f87171; margin-bottom:16px; display:none; }
+
+  /* APP */
+  #app { display:none; min-height:100vh; }
+  .topbar {
+    background:var(--surface); border-bottom:1px solid var(--border);
+    padding:0 28px; height:60px; display:flex; align-items:center; justify-content:space-between;
+    position:sticky; top:0; z-index:100;
+  }
+  .topbar-logo { font-size:20px; font-weight:700; color:var(--accent); letter-spacing:-1px; }
+  .topbar-logo span { color:var(--text); }
+  .topbar-right { display:flex; align-items:center; gap:14px; }
+  .avatar {
+    width:36px; height:36px; border-radius:50%; background:linear-gradient(135deg,var(--accent),var(--accent2));
+    display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; cursor:pointer;
+  }
+  .username-tag { font-size:13px; color:var(--muted); }
+  .logout-btn { background:transparent; border:1px solid var(--border); border-radius:8px;
+    padding:6px 14px; color:var(--muted); font-family:inherit; font-size:12px; cursor:pointer; transition:.2s; }
+  .logout-btn:hover { border-color:var(--red); color:var(--red); }
+
+  .layout { display:flex; }
+  .sidebar {
+    width:220px; background:var(--surface); border-right:1px solid var(--border);
+    min-height:calc(100vh - 60px); padding:20px 12px; flex-shrink:0;
+  }
+  .sidebar-section { font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); padding:6px 10px; margin-bottom:4px; }
+  .nav-item {
+    display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:8px;
+    font-size:13.5px; cursor:pointer; transition:.15s; color:var(--muted); margin-bottom:2px;
+  }
+  .nav-item:hover { background:var(--surface2); color:var(--text); }
+  .nav-item.active { background:var(--accent)18; color:var(--accent); font-weight:500; }
+  .nav-icon { font-size:16px; }
+
+  .main { flex:1; padding:28px; overflow-x:hidden; }
+  .page { display:none; }
+  .page.active { display:block; }
+
+  /* DASHBOARD */
+  .page-title { font-size:22px; font-weight:700; margin-bottom:4px; }
+  .page-sub { color:var(--muted); font-size:13px; margin-bottom:24px; }
+  .stats-row { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:28px; }
+  .stat-card {
+    background:var(--card); border:1px solid var(--border); border-radius:14px;
+    padding:20px; display:flex; flex-direction:column; gap:6px;
+  }
+  .stat-label { font-size:11px; text-transform:uppercase; letter-spacing:.8px; color:var(--muted); }
+  .stat-value { font-size:28px; font-weight:700; }
+  .stat-badge { display:inline-block; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:500; }
+  .badge-green { background:#22c55e20; color:#22c55e; }
+  .badge-orange { background:#f59e0b20; color:#f59e0b; }
+  .badge-blue { background:#4f6ef720; color:#4f6ef7; }
+  .badge-red { background:#ef444420; color:#ef4444; }
+
+  .section-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+  .section-title { font-size:15px; font-weight:600; }
+  .add-btn {
+    background:var(--accent); color:#fff; border:none; border-radius:8px;
+    padding:8px 16px; font-family:inherit; font-size:13px; font-weight:500; cursor:pointer; transition:.2s;
+  }
+  .add-btn:hover { background:#3a56e8; }
+
+  /* TASKS TABLE */
+  .tasks-table { width:100%; border-collapse:collapse; }
+  .tasks-table th { text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.8px;
+    color:var(--muted); padding:10px 12px; border-bottom:1px solid var(--border); }
+  .tasks-table td { padding:12px 12px; font-size:13.5px; border-bottom:1px solid var(--border)60; }
+  .tasks-table tr:hover td { background:var(--surface2)80; }
+  .priority-dot { width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:6px; }
+  .prio-high { background:var(--red); }
+  .prio-med  { background:var(--orange); }
+  .prio-low  { background:var(--green); }
+  .status-pill { padding:3px 10px; border-radius:20px; font-size:11px; font-weight:500; }
+  .s-pending   { background:#6b728020; color:#9ca3af; }
+  .s-progress  { background:#4f6ef720; color:#818cf8; }
+  .s-done      { background:#22c55e20; color:#4ade80; }
+  .action-btn { background:transparent; border:none; color:var(--muted); cursor:pointer; font-size:16px; transition:.15s; }
+  .action-btn:hover { color:var(--text); }
+
+  /* KANBAN */
+  .kanban-board { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; }
+  .kanban-col { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:16px; }
+  .col-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+  .col-title { font-size:13px; font-weight:600; display:flex; align-items:center; gap:8px; }
+  .col-count { background:var(--surface2); border-radius:20px; padding:2px 8px; font-size:11px; color:var(--muted); }
+  .kanban-card {
+    background:var(--card); border:1px solid var(--border); border-radius:10px;
+    padding:14px; margin-bottom:10px; cursor:grab; transition:.2s;
+    user-select:none;
+  }
+  .kanban-card:hover { border-color:var(--accent)60; transform:translateY(-2px); box-shadow:0 6px 20px #00000040; }
+  .kanban-card:active { cursor:grabbing; }
+  .card-title { font-size:13px; font-weight:500; margin-bottom:8px; line-height:1.4; }
+  .card-meta { display:flex; align-items:center; justify-content:space-between; }
+  .card-tag { padding:2px 8px; border-radius:6px; font-size:10px; font-weight:500; }
+  .tag-design { background:#7c3aed20; color:#a78bfa; }
+  .tag-dev    { background:#4f6ef720; color:#818cf8; }
+  .tag-test   { background:#f59e0b20; color:#fbbf24; }
+  .card-assignee { font-size:11px; color:var(--muted); }
+  .kanban-col.drag-over { border-color:var(--accent); background:var(--accent)08; }
+
+  /* MODAL */
+  .modal-overlay {
+    position:fixed; inset:0; background:#00000080; backdrop-filter:blur(4px);
+    display:flex; align-items:center; justify-content:center; z-index:200;
+    opacity:0; pointer-events:none; transition:.2s;
+  }
+  .modal-overlay.open { opacity:1; pointer-events:all; }
+  .modal {
+    background:var(--surface); border:1px solid var(--border); border-radius:18px;
+    padding:32px; width:480px; max-width:95vw;
+    transform:translateY(20px); transition:.2s;
+  }
+  .modal-overlay.open .modal { transform:translateY(0); }
+  .modal-title { font-size:17px; font-weight:700; margin-bottom:20px; }
+  .form-row { margin-bottom:16px; }
+  .form-row label { font-size:11px; text-transform:uppercase; letter-spacing:.8px; color:var(--muted); margin-bottom:6px; display:block; }
+  .form-row input, .form-row select, .form-row textarea {
+    width:100%; background:var(--bg); border:1px solid var(--border); border-radius:9px;
+    padding:10px 12px; color:var(--text); font-family:inherit; font-size:13.5px; outline:none; transition:.2s;
+  }
+  .form-row input:focus, .form-row select:focus, .form-row textarea:focus {
+    border-color:var(--accent); box-shadow:0 0 0 3px #4f6ef718;
+  }
+  .form-row textarea { resize:vertical; min-height:80px; }
+  .form-row select option { background:var(--surface); }
+  .char-count { font-size:11px; color:var(--muted); text-align:right; margin-top:4px; }
+  .modal-btns { display:flex; gap:10px; justify-content:flex-end; margin-top:8px; }
+  .btn-cancel { background:var(--surface2); border:none; border-radius:8px;
+    padding:10px 20px; color:var(--text); font-family:inherit; font-size:13px; cursor:pointer; }
+  .btn-save { background:var(--accent); border:none; border-radius:8px;
+    padding:10px 20px; color:#fff; font-family:inherit; font-size:13px; font-weight:600; cursor:pointer; transition:.2s; }
+  .btn-save:hover { background:#3a56e8; }
+
+  /* PASSWORD HELPER */
+  .pwd-hints { background:var(--bg); border:1px solid var(--border); border-radius:8px;
+    padding:10px 12px; margin-top:-12px; margin-bottom:16px; font-size:12px; }
+  .hint-item { display:flex; align-items:center; gap:6px; padding:2px 0; color:var(--muted); }
+  .hint-item.ok { color:var(--green); }
+  .hint-icon { font-size:13px; }
+
+  /* NOTIFICATION */
+  .notif-panel { position:fixed; top:70px; right:20px; z-index:300; display:flex; flex-direction:column; gap:8px; }
+  .notif {
+    background:var(--surface); border:1px solid var(--border); border-radius:10px;
+    padding:12px 16px; font-size:13px; min-width:260px;
+    box-shadow:0 8px 24px #00000060; animation:slideIn .3s ease;
+    display:flex; align-items:center; gap:10px;
+  }
+  @keyframes slideIn { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:translateX(0)} }
+  .notif-icon { font-size:18px; }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="logo">Task<span>Flow</span></div>
+    <div class="login-sub">Plataforma de gestión de proyectos colaborativos</div>
+    <div class="error-msg" id="error-msg">Correo o contraseña incorrectos.</div>
+    <div id="login-form">
+      <label>Correo electrónico</label>
+      <input type="email" id="login-email" placeholder="usuario@correo.com" value="laura.martinez@correo.com">
+      <label>Contraseña</label>
+      <input type="password" id="login-pwd" placeholder="••••••••" value="">
+      <div class="pwd-hints" id="login-pwd-hints" style="display:none">
+        <div class="hint-item" id="h-len"><span class="hint-icon">○</span> Mínimo 8 caracteres</div>
+        <div class="hint-item" id="h-upper"><span class="hint-icon">○</span> Al menos una mayúscula</div>
+        <div class="hint-item" id="h-num"><span class="hint-icon">○</span> Al menos un número</div>
+        <div class="hint-item" id="h-special"><span class="hint-icon">○</span> Al menos un carácter especial (@!#$%)</div>
+      </div>
+      <button class="btn" onclick="doLogin()">Iniciar sesión</button>
+      <div class="toggle-link">¿No tienes cuenta? <a onclick="showRegister()">Crear cuenta</a></div>
+    </div>
+    <div id="register-form" style="display:none">
+      <label>Nombre completo</label>
+      <input type="text" id="reg-name" placeholder="Laura Martínez">
+      <label>Correo electrónico</label>
+      <input type="email" id="reg-email" placeholder="usuario@correo.com">
+      <label>Contraseña</label>
+      <input type="password" id="reg-pwd" placeholder="••••••••" oninput="checkPwd(this.value)">
+      <div class="pwd-hints" id="reg-pwd-hints">
+        <div class="hint-item" id="r-len"><span class="hint-icon">○</span> Mínimo 8 caracteres</div>
+        <div class="hint-item" id="r-upper"><span class="hint-icon">○</span> Al menos una mayúscula</div>
+        <div class="hint-item" id="r-num"><span class="hint-icon">○</span> Al menos un número</div>
+        <div class="hint-item" id="r-special"><span class="hint-icon">○</span> Al menos un carácter especial (@!#$%)</div>
+      </div>
+      <label>Confirmar contraseña</label>
+      <input type="password" id="reg-pwd2" placeholder="••••••••">
+      <button class="btn" onclick="doRegister()">Crear cuenta</button>
+      <div class="toggle-link">¿Ya tienes cuenta? <a onclick="showLogin()">Iniciar sesión</a></div>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-logo">Task<span>Flow</span></div>
+    <div class="topbar-right">
+      <div class="avatar" id="avatar-initials">LM</div>
+      <span class="username-tag" id="username-display">Laura Martínez</span>
+      <button class="logout-btn" onclick="doLogout()">Salir</button>
+    </div>
+  </div>
+  <div class="layout">
+    <div class="sidebar">
+      <div class="sidebar-section">Menú</div>
+      <div class="nav-item active" onclick="showPage('dashboard',this)"><span class="nav-icon">📊</span> Dashboard</div>
+      <div class="nav-item" onclick="showPage('tasks',this)"><span class="nav-icon">✅</span> Mis Tareas</div>
+      <div class="nav-item" onclick="showPage('kanban',this)"><span class="nav-icon">🗂️</span> Tablero Kanban</div>
+      <div class="nav-item" onclick="showPage('notifs',this)"><span class="nav-icon">🔔</span> Notificaciones</div>
+    </div>
+    <div class="main">
+
+      <!-- DASHBOARD -->
+      <div class="page active" id="page-dashboard">
+        <div class="page-title">Dashboard</div>
+        <div class="page-sub" id="welcome-msg">Bienvenida, Laura — aquí está el resumen de tu proyecto.</div>
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-label">Total Tareas</div>
+            <div class="stat-value" id="stat-total">7</div>
+            <span class="stat-badge badge-blue">Proyecto Alpha</span>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Pendientes</div>
+            <div class="stat-value" id="stat-pending" style="color:var(--muted)">3</div>
+            <span class="stat-badge badge-orange">Por iniciar</span>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">En Progreso</div>
+            <div class="stat-value" id="stat-progress" style="color:var(--accent)">2</div>
+            <span class="stat-badge badge-blue">Activas</span>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Completadas</div>
+            <div class="stat-value" id="stat-done" style="color:var(--green)">2</div>
+            <span class="stat-badge badge-green">Finalizadas</span>
+          </div>
+        </div>
+        <div class="section-header">
+          <div class="section-title">Actividad reciente</div>
+        </div>
+        <div id="activity-feed" style="display:flex;flex-direction:column;gap:8px">
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;font-size:13px;display:flex;gap:12px;align-items:center">
+            <span style="font-size:18px">✅</span>
+            <div><b>Carlos Ruiz</b> completó <span style="color:var(--accent)">"Configuración base de datos"</span><div style="font-size:11px;color:var(--muted);margin-top:2px">Hace 2 horas</div></div>
+          </div>
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;font-size:13px;display:flex;gap:12px;align-items:center">
+            <span style="font-size:18px">🔄</span>
+            <div><b>Ana Torres</b> movió <span style="color:var(--accent)">"Diseño de pantallas"</span> a En Progreso<div style="font-size:11px;color:var(--muted);margin-top:2px">Hace 4 horas</div></div>
+          </div>
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;font-size:13px;display:flex;gap:12px;align-items:center">
+            <span style="font-size:18px">➕</span>
+            <div><b>Laura Martínez</b> creó la tarea <span style="color:var(--accent)">"Pruebas de usabilidad módulo login"</span><div style="font-size:11px;color:var(--muted);margin-top:2px">Ayer</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAREAS -->
+      <div class="page" id="page-tasks">
+        <div class="page-title">Mis Tareas</div>
+        <div class="page-sub">Gestiona y da seguimiento a las tareas del proyecto.</div>
+        <div class="section-header">
+          <div class="section-title">Lista de tareas</div>
+          <button class="add-btn" onclick="openModal()">+ Nueva Tarea</button>
+        </div>
+        <table class="tasks-table" id="tasks-table">
+          <thead>
+            <tr>
+              <th>Tarea</th><th>Asignado</th><th>Prioridad</th><th>Fecha límite</th><th>Estado</th><th></th>
+            </tr>
+          </thead>
+          <tbody id="tasks-body"></tbody>
+        </table>
+      </div>
+
+      <!-- KANBAN -->
+      <div class="page" id="page-kanban">
+        <div class="page-title">Tablero Kanban</div>
+        <div class="page-sub">Arrastra las tarjetas entre columnas para actualizar el estado.</div>
+        <div class="kanban-board">
+          <div class="kanban-col" id="col-pending" ondragover="allowDrop(event)" ondrop="dropCard(event,'pending')">
+            <div class="col-header">
+              <div class="col-title"><span style="color:var(--muted)">⬜</span> Pendiente <span class="col-count" id="cnt-pending">0</span></div>
+            </div>
+            <div id="cards-pending"></div>
+          </div>
+          <div class="kanban-col" id="col-progress" ondragover="allowDrop(event)" ondrop="dropCard(event,'progress')">
+            <div class="col-header">
+              <div class="col-title"><span style="color:var(--accent)">🔵</span> En Progreso <span class="col-count" id="cnt-progress">0</span></div>
+            </div>
+            <div id="cards-progress"></div>
+          </div>
+          <div class="kanban-col" id="col-done" ondragover="allowDrop(event)" ondrop="dropCard(event,'done')">
+            <div class="col-header">
+              <div class="col-title"><span style="color:var(--green)">🟢</span> Completado <span class="col-count" id="cnt-done">0</span></div>
+            </div>
+            <div id="cards-done"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- NOTIFICACIONES -->
+      <div class="page" id="page-notifs">
+        <div class="page-title">Notificaciones</div>
+        <div class="page-sub">Recordatorios y alertas del proyecto.</div>
+        <div style="display:flex;flex-direction:column;gap:10px" id="notif-list"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NUEVA TAREA -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-title">➕ Nueva Tarea</div>
+    <div class="form-row">
+      <label>Título de la tarea</label>
+      <input type="text" id="new-title" placeholder="Ej: Diseño de pantallas módulo reportes" maxlength="100">
+      <div class="char-count"><span id="title-count">0</span>/100 caracteres</div>
+    </div>
+    <div class="form-row">
+      <label>Descripción</label>
+      <textarea id="new-desc" placeholder="Describe brevemente el objetivo de la tarea..." maxlength="300" oninput="updateDescCount()"></textarea>
+      <div class="char-count"><span id="desc-count">0</span>/300 caracteres</div>
+    </div>
+    <div class="form-row">
+      <label>Asignar a</label>
+      <select id="new-assignee">
+        <option value="Laura Martínez">Laura Martínez</option>
+        <option value="Carlos Ruiz">Carlos Ruiz</option>
+        <option value="Ana Torres">Ana Torres</option>
+        <option value="Mateo López">Mateo López</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <label>Fecha límite (DD/MM/AAAA)</label>
+      <input type="date" id="new-date" style="color-scheme:dark">
+    </div>
+    <div class="form-row">
+      <label>Prioridad</label>
+      <select id="new-priority">
+        <option value="Alta">🔴 Alta</option>
+        <option value="Media" selected>🟡 Media</option>
+        <option value="Baja">🟢 Baja</option>
+      </select>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
+      <button class="btn-save" onclick="saveTask()">Guardar tarea</button>
+    </div>
+  </div>
+</div>
+
+<div class="notif-panel" id="notif-panel"></div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────
+let currentUser = null;
+const users = [
+  { email:'laura.martinez@correo.com', pwd:'Test@2026', name:'Laura Martínez' },
+  { email:'admin@taskflow.com', pwd:'Admin@2026', name:'Admin TaskFlow' },
+];
+
+let tasks = [
+  { id:1, title:'Diseño de pantallas módulo reportes', desc:'Crear wireframes en Figma', assignee:'Ana Torres', date:'2026-05-20', priority:'Alta', status:'progress', tag:'design' },
+  { id:2, title:'Configuración base de datos', desc:'Configurar PostgreSQL y migraciones', assignee:'Carlos Ruiz', date:'2026-05-15', priority:'Alta', status:'done', tag:'dev' },
+  { id:3, title:'Pruebas de usabilidad módulo login', desc:'Ejecutar protocolo Think Aloud con 5 usuarios', assignee:'Laura Martínez', date:'2026-05-22', priority:'Media', status:'pending', tag:'test' },
+  { id:4, title:'Integración API de pagos', desc:'Conectar con pasarela Stripe', assignee:'Mateo López', date:'2026-05-28', priority:'Alta', status:'pending', tag:'dev' },
+  { id:5, title:'Manual de usuario v1.0', desc:'Documentar flujos principales del sistema', assignee:'Laura Martínez', date:'2026-06-01', priority:'Baja', status:'pending', tag:'design' },
+  { id:6, title:'Revisión de accesibilidad WCAG', desc:'Verificar contraste, roles ARIA y navegación por teclado', assignee:'Ana Torres', date:'2026-05-25', priority:'Media', status:'progress', tag:'test' },
+  { id:7, title:'Deploy en ambiente de pruebas', desc:'Configurar pipeline CI/CD en GitHub Actions', assignee:'Carlos Ruiz', date:'2026-05-18', priority:'Media', status:'done', tag:'dev' },
+];
+let nextId = 8;
+let draggedId = null;
+
+// ── AUTH ─────────────────────────────────────────────────────────────────
+function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pwd   = document.getElementById('login-pwd').value;
+  const user  = users.find(u => u.email===email && u.pwd===pwd);
+  if (!user) {
+    document.getElementById('error-msg').style.display='block';
+    return;
+  }
+  document.getElementById('error-msg').style.display='none';
+  loginSuccess(user);
+}
+function doRegister() {
+  const name = document.getElementById('reg-name').value.trim();
+  const email= document.getElementById('reg-email').value.trim();
+  const pwd  = document.getElementById('reg-pwd').value;
+  const pwd2 = document.getElementById('reg-pwd2').value;
+  if (!name||!email||!pwd) { showToast('⚠️','Completa todos los campos','orange'); return; }
+  if (pwd !== pwd2) { showToast('❌','Las contraseñas no coinciden','red'); return; }
+  if (!validatePwd(pwd)) { showToast('⚠️','La contraseña no cumple los requisitos','orange'); return; }
+  const newUser = {email, pwd, name};
+  users.push(newUser);
+  showToast('✅','Cuenta creada exitosamente. ¡Bienvenido/a!','green');
+  setTimeout(()=>{ loginSuccess(newUser); }, 1200);
+}
+function loginSuccess(user) {
+  currentUser = user;
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').style.display='block';
+  const initials = user.name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+  document.getElementById('avatar-initials').textContent = initials;
+  document.getElementById('username-display').textContent = user.name;
+  document.getElementById('welcome-msg').textContent = `Bienvenido/a, ${user.name.split(' ')[0]} — aquí está el resumen de tu proyecto.`;
+  renderAll();
+}
+function doLogout() {
+  document.getElementById('app').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('login-pwd').value='';
+}
+function showRegister() {
+  document.getElementById('login-form').style.display='none';
+  document.getElementById('register-form').style.display='block';
+}
+function showLogin() {
+  document.getElementById('register-form').style.display='none';
+  document.getElementById('login-form').style.display='block';
+}
+
+// Password hints
+document.getElementById('login-pwd').addEventListener('focus', ()=>{
+  document.getElementById('login-pwd-hints').style.display='block';
+});
+document.getElementById('login-pwd').addEventListener('input', e => {
+  const v = e.target.value;
+  setHint('h-len', v.length>=8);
+  setHint('h-upper', /[A-Z]/.test(v));
+  setHint('h-num', /[0-9]/.test(v));
+  setHint('h-special', /[@!#$%^&*]/.test(v));
+});
+function checkPwd(v) {
+  setHint('r-len', v.length>=8);
+  setHint('r-upper', /[A-Z]/.test(v));
+  setHint('r-num', /[0-9]/.test(v));
+  setHint('r-special', /[@!#$%^&*]/.test(v));
+}
+function setHint(id, ok) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.className = 'hint-item' + (ok?' ok':'');
+  el.querySelector('.hint-icon').textContent = ok ? '✓' : '○';
+}
+function validatePwd(v) {
+  return v.length>=8 && /[A-Z]/.test(v) && /[0-9]/.test(v) && /[@!#$%^&*]/.test(v);
+}
+
+// ── NAVIGATION ────────────────────────────────────────────────────────────
+function showPage(name, el) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  if(el) el.classList.add('active');
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────
+function renderAll() { renderStats(); renderTasks(); renderKanban(); renderNotifs(); }
+
+function renderStats() {
+  document.getElementById('stat-total').textContent   = tasks.length;
+  document.getElementById('stat-pending').textContent = tasks.filter(t=>t.status==='pending').length;
+  document.getElementById('stat-progress').textContent= tasks.filter(t=>t.status==='progress').length;
+  document.getElementById('stat-done').textContent    = tasks.filter(t=>t.status==='done').length;
+}
+
+function renderTasks() {
+  const body = document.getElementById('tasks-body');
+  body.innerHTML = '';
+  tasks.forEach(t => {
+    const dotClass = t.priority==='Alta'?'prio-high':t.priority==='Media'?'prio-med':'prio-low';
+    const pillClass = t.status==='pending'?'s-pending':t.status==='progress'?'s-progress':'s-done';
+    const pillText  = t.status==='pending'?'Pendiente':t.status==='progress'?'En Progreso':'Completada';
+    const dateStr   = t.date ? t.date.split('-').reverse().join('/') : '—';
+    body.innerHTML += `<tr>
+      <td><span class="priority-dot ${dotClass}"></span>${t.title}</td>
+      <td style="color:var(--muted)">${t.assignee}</td>
+      <td>${t.priority}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:12px">${dateStr}</td>
+      <td><span class="status-pill ${pillClass}">${pillText}</span></td>
+      <td><button class="action-btn" onclick="deleteTask(${t.id})" title="Eliminar">🗑</button></td>
+    </tr>`;
+  });
+}
+
+function renderKanban() {
+  ['pending','progress','done'].forEach(s => {
+    const col = document.getElementById('cards-'+s);
+    const cnt = document.getElementById('cnt-'+s);
+    const filtered = tasks.filter(t=>t.status===s);
+    cnt.textContent = filtered.length;
+    col.innerHTML = '';
+    filtered.forEach(t => {
+      const tagClass = t.tag==='design'?'tag-design':t.tag==='dev'?'tag-dev':'tag-test';
+      const tagText  = t.tag==='design'?'Diseño':t.tag==='dev'?'Desarrollo':'QA';
+      col.innerHTML += `<div class="kanban-card" draggable="true"
+        ondragstart="dragStart(event,${t.id})"
+        title="Arrastra para cambiar el estado">
+        <div class="card-title">${t.title}</div>
+        <div class="card-meta">
+          <span class="card-tag ${tagClass}">${tagText}</span>
+          <span class="card-assignee">${t.assignee.split(' ')[0]}</span>
+        </div>
+      </div>`;
+    });
+  });
+}
+
+function renderNotifs() {
+  const list = document.getElementById('notif-list');
+  const notifs = [
+    { icon:'🔔', text:'<b>Carlos Ruiz</b> te asignó la tarea "Revisión de accesibilidad WCAG"', time:'Hace 1 hora', color:'var(--accent)' },
+    { icon:'⚠️', text:'La tarea <b>"Integración API de pagos"</b> vence en 3 días', time:'Hace 3 horas', color:'var(--orange)' },
+    { icon:'✅', text:'<b>Ana Torres</b> completó "Configuración base de datos"', time:'Ayer', color:'var(--green)' },
+    { icon:'💬', text:'Nuevo comentario en <b>"Diseño de pantallas módulo reportes"</b>', time:'Ayer', color:'var(--muted)' },
+  ];
+  list.innerHTML = notifs.map(n=>`
+    <div style="background:var(--card);border:1px solid var(--border);border-left:3px solid ${n.color};border-radius:10px;padding:16px 18px;display:flex;align-items:center;gap:14px">
+      <span style="font-size:22px">${n.icon}</span>
+      <div>
+        <div style="font-size:13.5px">${n.text}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:3px">${n.time}</div>
+      </div>
+    </div>`).join('');
+}
+
+// ── TASKS CRUD ────────────────────────────────────────────────────────────
+function openModal() { document.getElementById('modal').classList.add('open'); }
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+
+document.getElementById('new-title').addEventListener('input', e => {
+  document.getElementById('title-count').textContent = e.target.value.length;
+});
+function updateDescCount() {
+  document.getElementById('desc-count').textContent = document.getElementById('new-desc').value.length;
+}
+
+function saveTask() {
+  const title    = document.getElementById('new-title').value.trim();
+  const desc     = document.getElementById('new-desc').value.trim();
+  const assignee = document.getElementById('new-assignee').value;
+  const date     = document.getElementById('new-date').value;
+  const priority = document.getElementById('new-priority').value.replace(/[🔴🟡🟢]\s*/,'');
+  if (!title) { showToast('⚠️','El título es obligatorio','orange'); return; }
+  tasks.push({ id:nextId++, title, desc, assignee, date, priority, status:'pending', tag:'dev' });
+  closeModal();
+  document.getElementById('new-title').value='';
+  document.getElementById('new-desc').value='';
+  document.getElementById('title-count').textContent='0';
+  document.getElementById('desc-count').textContent='0';
+  renderAll();
+  showToast('✅',`Tarea "${title}" creada y asignada a ${assignee}`,'green');
+}
+
+function deleteTask(id) {
+  tasks = tasks.filter(t=>t.id!==id);
+  renderAll();
+  showToast('🗑','Tarea eliminada','red');
+}
+
+// ── KANBAN DRAG & DROP ────────────────────────────────────────────────────
+function dragStart(e, id) {
+  draggedId = id;
+  e.dataTransfer.effectAllowed = 'move';
+}
+function allowDrop(e) {
+  e.preventDefault();
+  e.currentTarget.classList.add('drag-over');
+}
+function dropCard(e, status) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  document.querySelectorAll('.kanban-col').forEach(c=>c.classList.remove('drag-over'));
+  const task = tasks.find(t=>t.id===draggedId);
+  if (task && task.status !== status) {
+    task.status = status;
+    const labels = {pending:'Pendiente',progress:'En Progreso',done:'Completado'};
+    showToast('🔄',`Tarea movida a "${labels[status]}"`,'blue');
+    renderAll();
+  }
+  draggedId = null;
+}
+document.addEventListener('dragend', ()=>{
+  document.querySelectorAll('.kanban-col').forEach(c=>c.classList.remove('drag-over'));
+});
+
+// ── TOASTS ────────────────────────────────────────────────────────────────
+function showToast(icon, msg, type) {
+  const panel = document.getElementById('notif-panel');
+  const colors = {green:'var(--green)',orange:'var(--orange)',red:'var(--red)',blue:'var(--accent)'};
+  const div = document.createElement('div');
+  div.className = 'notif';
+  div.style.borderLeft = `3px solid ${colors[type]||'var(--border)'}`;
+  div.innerHTML = `<span class="notif-icon">${icon}</span><span>${msg}</span>`;
+  panel.appendChild(div);
+  setTimeout(()=>div.remove(), 3500);
+}
+</script>
+</body>
+</html>
